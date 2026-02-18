@@ -13,9 +13,13 @@ jobs:
   quality-gate:
     runs-on: windows-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Setup PowerShell modules
         shell: pwsh
@@ -50,24 +54,48 @@ jobs:
           ./tests/pester/Invoke-Pester.ps1 -CI
 
       - name: Upload Pester results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: pester-results
           path: tests/pester/results/pester-results.xml
           if-no-files-found: warn
 
-      - name: Secret scan (Gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Dependency vulnerability review
-        if: ${{ github.event_name == 'pull_request' && hashFiles('**/package-lock.json', '**/yarn.lock', '**/pnpm-lock.yaml', '**/requirements.txt', '**/poetry.lock', '**/Pipfile.lock', '**/go.sum', '**/Cargo.lock') != '' }}
-        uses: actions/dependency-review-action@v4
-
       - name: Quality gate passed
         if: success()
         shell: pwsh
         run: |
           Write-Host "All quality gates passed."
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Secret scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-review:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Dependency vulnerability review
+        if: ${{ hashFiles('**/package-lock.json', '**/yarn.lock', '**/pnpm-lock.yaml', '**/requirements.txt', '**/poetry.lock', '**/Pipfile.lock', '**/go.sum', '**/Cargo.lock') != '' }}
+        uses: actions/dependency-review-action@46a3c492319c890177366b6ef46d6b4f89743ed4 # v4
