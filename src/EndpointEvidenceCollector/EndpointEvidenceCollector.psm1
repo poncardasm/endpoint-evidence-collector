@@ -299,11 +299,13 @@ function Get-EecNetworkEvidence {
     $routes = Get-NetRoute -AddressFamily IPv4 | Select-Object -Property InterfaceAlias, DestinationPrefix, NextHop, RouteMetric, State
     $dnsServers = Get-DnsClientServerAddress | Select-Object -Property InterfaceAlias, AddressFamily, ServerAddresses
 
-    $reachability = @(
-        [pscustomobject]@{ Target = "1.1.1.1"; Reachable = (Test-Connection -ComputerName "1.1.1.1" -Count 1 -Quiet -ErrorAction SilentlyContinue) }
-        [pscustomobject]@{ Target = "8.8.8.8"; Reachable = (Test-Connection -ComputerName "8.8.8.8" -Count 1 -Quiet -ErrorAction SilentlyContinue) }
-        [pscustomobject]@{ Target = "microsoft.com"; Reachable = (Test-Connection -ComputerName "microsoft.com" -Count 1 -Quiet -ErrorAction SilentlyContinue) }
-    )
+    $reachabilityTargets = @("1.1.1.1", "8.8.8.8", "microsoft.com")
+    $reachability = foreach ($target in $reachabilityTargets) {
+        [pscustomobject]@{
+            Target = $target
+            Reachable = (Test-Connection -ComputerName $target -Count 1 -Quiet -ErrorAction SilentlyContinue)
+        }
+    }
 
     [pscustomobject]@{
         Adapters = $adapters

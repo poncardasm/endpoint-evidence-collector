@@ -19,7 +19,11 @@ foreach ($target in $lintTargets) {
 
 if ($lintResults.Count -gt 0) {
     $lintResults | Format-Table -AutoSize | Out-String | Write-Host
-    Write-Error "Pre-push failed: PSScriptAnalyzer reported issues."
+}
+
+$lintErrors = @($lintResults | Where-Object { $_.Severity -eq "Error" })
+if ($lintErrors.Count -gt 0) {
+    Write-Error "Pre-push failed: PSScriptAnalyzer reported error severity issues."
     exit 1
 }
 

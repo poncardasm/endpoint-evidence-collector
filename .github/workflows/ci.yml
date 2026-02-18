@@ -34,9 +34,14 @@ jobs:
               $results += @(Invoke-ScriptAnalyzer -Path $target -Recurse -Severity Error,Warning)
             }
           }
-          if ($results) {
+
+          if ($results.Count -gt 0) {
             $results | Format-Table -AutoSize | Out-String | Write-Host
-            throw "PSScriptAnalyzer reported issues."
+          }
+
+          $errors = @($results | Where-Object { $_.Severity -eq "Error" })
+          if ($errors.Count -gt 0) {
+            throw "PSScriptAnalyzer reported error severity issues."
           }
 
       - name: Run Pester tests

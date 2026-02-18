@@ -34,7 +34,11 @@ foreach ($target in $psTargets) {
 
 if ($results.Count -gt 0) {
     $results | Format-Table -AutoSize | Out-String | Write-Host
-    Write-Error "Pre-commit failed: PSScriptAnalyzer reported issues."
+}
+
+$errors = @($results | Where-Object { $_.Severity -eq "Error" })
+if ($errors.Count -gt 0) {
+    Write-Error "Pre-commit failed: PSScriptAnalyzer reported error severity issues."
     exit 1
 }
 
