@@ -2,6 +2,26 @@
 
 Windows-first endpoint diagnostics collector for service desk escalation workflows.
 
+## Summary
+
+This tool helps IT support / Service Desk to staff quickly gather the right troubleshooting information from a computer when an issue needs to be escalated.  
+
+In one run, it collects:
+- basic computer and Windows details,
+- running apps and background processes,
+- disk space/health information,
+- network and DNS settings plus basic connectivity checks,
+- installed applications,
+- and recent system/application event logs.
+
+It then hides sensitive details and produces a clean evidence package that can be safely shared with advanced support teams.
+
+## Status
+
+- Current state: `v1.0` implementation complete per `docs/TASKS.md` checklist.
+- Core features: implemented and integrated (collection, redaction, packaging, integrity, retention, CI/testing, docs/examples).
+- Post-v1 scaffolds: added for Python wrapper, macOS collectors, ticketing adapters, and upload automation.
+
 ## Problem
 
 Escalation evidence is often inconsistent, incomplete, and manually assembled. This project standardizes collection and redaction into a single run.
@@ -18,11 +38,17 @@ Escalation evidence is often inconsistent, incomplete, and manually assembled. T
 - Sensitive data redaction before export artifacts are created
 - Timestamped bundle generation with checksum and optional signature/encryption
 - Retention cleanup controls for aged run directories
+- CI quality gates with lint, tests, secret scanning, and dependency review
 
 ## Architecture
 
 - `collect-endpoint-evidence.ps1`: entry point and CLI validation
-- `src/EndpointEvidenceCollector/EndpointEvidenceCollector.psm1`: collectors, redaction, packaging, integrity, retention
+- `src/EndpointEvidenceCollector/EndpointEvidenceCollector.psm1`: collectors, redaction, packaging, integrity, retention, and run orchestration
+- `src/EndpointEvidenceCollector/EndpointEvidenceCollector.psd1`: module manifest and exports
+- `src/collectors/macos/Get-EecMacOSEvidence.ps1`: post-v1 macOS collector scaffold
+- `src/integrations/ticketing/adapter.ps1`: post-v1 ticketing adapter stubs
+- `src/integrations/upload/Upload-EecBundle.ps1`: post-v1 upload automation stub
+- `wrapper/python/eec_wrapper.py`: post-v1 Typer orchestration wrapper
 - `tests/pester`: unit/integration tests and CI test runner
 - `.github/workflows/ci.yml`: lint, tests, secret scan, dependency review
 
@@ -167,6 +193,15 @@ Release assets:
 - `RELEASE_READINESS.md`
 - `CHANGELOG.md`
 - `RELEASE_NOTES_TEMPLATE.md`
+
+## CI/CD Quality Gates
+
+The CI workflow (`.github/workflows/ci.yml`) enforces:
+
+- PowerShell static analysis via `PSScriptAnalyzer`
+- Pester test execution with XML artifact upload
+- Secret scanning (`gitleaks`)
+- Dependency vulnerability review on PRs when dependency manifests are present
 
 ## Post-v1 Backlog
 
