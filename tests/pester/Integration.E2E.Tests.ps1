@@ -1,6 +1,4 @@
-BeforeAll {
-    . (Join-Path $PSScriptRoot "_bootstrap.ps1")
-}
+. (Join-Path $PSScriptRoot "_bootstrap.ps1")
 
 Describe "Integration e2e flow" {
     InModuleScope EndpointEvidenceCollector {

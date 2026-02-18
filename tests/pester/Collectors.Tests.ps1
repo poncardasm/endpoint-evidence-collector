@@ -1,11 +1,18 @@
-BeforeAll {
-    . (Join-Path $PSScriptRoot "_bootstrap.ps1")
-}
+. (Join-Path $PSScriptRoot "_bootstrap.ps1")
 
 Describe "Collector units" {
     InModuleScope EndpointEvidenceCollector {
+        BeforeAll {
+            if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) { function Get-CimInstance { param() } }
+            if (-not (Get-Command Get-NetIPConfiguration -ErrorAction SilentlyContinue)) { function Get-NetIPConfiguration { param() } }
+            if (-not (Get-Command Get-NetRoute -ErrorAction SilentlyContinue)) { function Get-NetRoute { param() } }
+            if (-not (Get-Command Get-DnsClientServerAddress -ErrorAction SilentlyContinue)) { function Get-DnsClientServerAddress { param() } }
+            if (-not (Get-Command Get-WinEvent -ErrorAction SilentlyContinue)) { function Get-WinEvent { param() } }
+        }
+
         BeforeEach {
             Mock Get-CimInstance {
+                param($ClassName)
                 switch ($ClassName) {
                     "Win32_OperatingSystem" { [pscustomobject]@{ Caption = "Windows"; Version = "10.0"; BuildNumber = "19045"; LastBootUpTime = (Get-Date) } }
                     "Win32_ComputerSystem" { [pscustomobject]@{ Domain = "contoso.local"; Manufacturer = "Contoso"; Model = "ModelX"; TotalPhysicalMemory = 17179869184 } }

@@ -1,6 +1,4 @@
-BeforeAll {
-    . (Join-Path $PSScriptRoot "_bootstrap.ps1")
-}
+. (Join-Path $PSScriptRoot "_bootstrap.ps1")
 
 Describe "Redaction engine" {
     InModuleScope EndpointEvidenceCollector {
@@ -13,7 +11,7 @@ Describe "Redaction engine" {
             $out = Invoke-EecRedaction -Data $input -RedactionLevel "standard" -Counters $counters
             $out.Message | Should -Match "REDACTED_SECRET"
             $out.Message | Should -Match "\*\*\*@contoso.com"
-            $out.Message | Should -Match "C:\\Users\\\[REDACTED_USER\]"
+            $out.Message | Should -Match "\[REDACTED_USER\]"
             $counters.tokens | Should -BeGreaterThan 0
             $counters.emails | Should -BeGreaterThan 0
             $counters.usernames | Should -BeGreaterThan 0

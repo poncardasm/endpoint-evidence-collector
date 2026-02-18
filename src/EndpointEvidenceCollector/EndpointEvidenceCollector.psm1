@@ -148,7 +148,7 @@ function Set-EecOutputDirectoryPermissions {
 
     try {
         $userName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-        & icacls $Path /inheritance:r /grant:r "$userName:(OI)(CI)F" "Administrators:(OI)(CI)F" | Out-Null
+        & icacls $Path /inheritance:r /grant:r "${userName}:(OI)(CI)F" "Administrators:(OI)(CI)F" | Out-Null
     }
     catch {
         Write-Warning "Unable to harden output ACLs at '$Path': $($_.Exception.Message)"
@@ -466,17 +466,17 @@ function Get-EecRedactionRules {
     $rules = @(
         [pscustomobject]@{
             Category = "usernames"
-            Pattern = "(?i)(C:\\\\Users\\\\)([^\\\\\\s]+)"
+            Pattern = "(?i)(C:\\+Users\\+)([^\\\s]+)"
             Replace = { param($match) return $match.Groups[1].Value + "[REDACTED_USER]" }
         }
         [pscustomobject]@{
             Category = "usernames"
-            Pattern = "(?i)(/Users/)([^/\\s]+)"
+            Pattern = "(?i)(/Users/)([^/\s]+)"
             Replace = { param($match) return $match.Groups[1].Value + "[REDACTED_USER]" }
         }
         [pscustomobject]@{
             Category = "tokens"
-            Pattern = "(?i)\\b(?:api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password)\\b\\s*[:=]\\s*([^\\s,;]+)"
+            Pattern = "(?i)\b(?:api[_-]?key|access[_-]?token|refresh[_-]?token|secret|password)\b\s*[:=]\s*([^\s,;]+)"
             Replace = {
                 param($match)
                 $value = $match.Groups[0].Value
@@ -488,12 +488,12 @@ function Get-EecRedactionRules {
         }
         [pscustomobject]@{
             Category = "tokens"
-            Pattern = "\\beyJ[a-zA-Z0-9_-]{10,}\\.[a-zA-Z0-9._-]{10,}\\.[a-zA-Z0-9._-]{10,}\\b"
+            Pattern = "\beyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9._-]{10,}\.[a-zA-Z0-9._-]{10,}\b"
             Replace = { param($match) return "[REDACTED_JWT]" }
         }
         [pscustomobject]@{
             Category = "emails"
-            Pattern = "\\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})\\b"
+            Pattern = "\b([A-Za-z0-9._%+-])[A-Za-z0-9._%+-]*@([A-Za-z0-9.-]+\.[A-Za-z]{2,})\b"
             Replace = { param($match) return ($match.Groups[1].Value + "***@" + $match.Groups[2].Value) }
         }
     )
@@ -501,12 +501,12 @@ function Get-EecRedactionRules {
     if ($RedactionLevel -eq "strict") {
         $rules += [pscustomobject]@{
             Category = "ip_addresses"
-            Pattern = "\\b(?:(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\b"
+            Pattern = "\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b"
             Replace = { param($match) return "[REDACTED_IPV4]" }
         }
         $rules += [pscustomobject]@{
             Category = "ip_addresses"
-            Pattern = "\\b(?:[A-Fa-f0-9]{1,4}:){2,7}[A-Fa-f0-9]{1,4}\\b"
+            Pattern = "(?i)\b(?:[A-F0-9]{0,4}:){2,7}[A-F0-9]{0,4}\b"
             Replace = { param($match) return "[REDACTED_IPV6]" }
         }
     }
@@ -575,7 +575,7 @@ function Invoke-EecRedactValue {
     }
 
     $properties = $Value.PSObject.Properties
-    if ($properties.Count -gt 0) {
+    if (@($properties).Count -gt 0) {
         $redactedObject = [ordered]@{}
         foreach ($property in $properties) {
             if ($property.MemberType -eq "NoteProperty" -or $property.MemberType -eq "Property" -or $property.MemberType -eq "AliasProperty") {
