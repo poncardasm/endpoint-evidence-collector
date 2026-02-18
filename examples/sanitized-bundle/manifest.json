@@ -1,0 +1,32 @@
+{
+  "run_id": "11111111-2222-3333-4444-555555555555",
+  "generator_version": "0.1.0",
+  "host": "WORKSTATION-001",
+  "started_at_utc": "2026-02-18T16:00:00.0000000Z",
+  "finished_at_utc": "2026-02-18T16:00:01.8400000Z",
+  "case_id": "INC-10492",
+  "ticket_id": "",
+  "redaction_level": "strict",
+  "summary": {
+    "total_collectors": 3,
+    "failure_count": 0,
+    "critical_failure_count": 0,
+    "skipped_count": 1,
+    "exit_code": 0,
+    "total_duration_ms": 1840
+  },
+  "files": [
+    {
+      "file_name": "summary.md",
+      "relative_path": ".\\summary.md",
+      "size_bytes": 877,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "file_name": "system.json",
+      "relative_path": ".\\system.json",
+      "size_bytes": 412,
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ]
+}

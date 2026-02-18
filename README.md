@@ -13,24 +13,33 @@ Escalation evidence is often inconsistent, incomplete, and manually assembled. T
 
 ## Features
 
-- Single command evidence collection (planned)
-- Standardized JSON + Markdown outputs (planned)
-- Sensitive data redaction before export (planned)
-- Timestamped ZIP bundle + checksum (planned)
+- Single command evidence collection via `collect-endpoint-evidence.ps1`
+- Standardized JSON + Markdown outputs per run
+- Sensitive data redaction before export artifacts are created
+- Timestamped bundle generation with checksum and optional signature/encryption
+- Retention cleanup controls for aged run directories
 
 ## Architecture
 
-- `collect-endpoint-evidence.ps1`: main entry script
-- `src/collectors`: evidence collectors
-- `src/redaction`: redaction pipeline
-- `src/packaging`: manifest, checksum, archive
-- `src/reporting`: summary output
+- `collect-endpoint-evidence.ps1`: entry point and CLI validation
+- `src/EndpointEvidenceCollector/EndpointEvidenceCollector.psm1`: collectors, redaction, packaging, integrity, retention
+- `tests/pester`: unit/integration tests and CI test runner
+- `.github/workflows/ci.yml`: lint, tests, secret scan, dependency review
+
+Collection pipeline:
+1. Validate parameters and build collector plan.
+2. Collect raw evidence by category.
+3. Redact sensitive data (fail-closed on redaction errors).
+4. Write artifacts (`*.json`, `summary.md`, `manifest.json`, `redaction-report.json`).
+5. Build bundle (`.zip` or encrypted `.enc`) and checksum/signature artifacts.
+6. Apply retention cleanup.
 
 ## Setup
 
 ### Prerequisites
 
 - Windows PowerShell 5.1+ (PowerShell 7 compatible target)
+- Optional for testing: `Pester`, `PSScriptAnalyzer`
 
 ### Quick start
 
@@ -40,7 +49,7 @@ Escalation evidence is often inconsistent, incomplete, and manually assembled. T
 
 ## Usage
 
-Example:
+### Normal run
 
 ```powershell
 .\collect-endpoint-evidence.ps1 `
@@ -50,19 +59,98 @@ Example:
   -Include "system","processes","disk","network","apps","eventlogs"
 ```
 
+### Dry-run plan only
+
+```powershell
+.\collect-endpoint-evidence.ps1 `
+  -DryRun `
+  -OutputDir ".\\out" `
+  -Include "system","network"
+```
+
+### Strict redaction and encrypted bundle
+
+```powershell
+$pw = Read-Host "Bundle password" -AsSecureString
+.\collect-endpoint-evidence.ps1 `
+  -CaseId "INC-10492" `
+  -RedactionLevel "strict" `
+  -EnableBundleEncryption `
+  -BundlePassword $pw
+```
+
+### Detached signature output
+
+```powershell
+.\collect-endpoint-evidence.ps1 `
+  -CaseId "INC-10492" `
+  -EnableSignature `
+  -SigningCertThumbprint "0123456789ABCDEF0123456789ABCDEF01234567"
+```
+
+### Retention cleanup only
+
+```powershell
+.\collect-endpoint-evidence.ps1 `
+  -OutputDir ".\\out" `
+  -RetentionDays 7 `
+  -RetentionCleanupOnly
+```
+
+## Output Artifacts
+
+Each run directory contains:
+
+- `summary.md`
+- `manifest.json`
+- `redaction-report.json`
+- `<collector>.json` files (`system.json`, `network.json`, etc.)
+- bundle file (`*.zip` or `*.enc`)
+- `bundle.sha256`
+- `checksum-verify.txt`
+- optional `*.sig.json` (when signature is enabled)
+
+See sample sanitized structure: `examples/sanitized-bundle/`.
+
+## Integrity Verification
+
+From a run directory:
+
+```powershell
+$expected = (Get-Content .\bundle.sha256).Split('  ')[0]
+$bundle = (Get-Content .\bundle.sha256).Split('  ')[1]
+$actual = (Get-FileHash -Algorithm SHA256 (Join-Path . $bundle)).Hash.ToLower()
+if ($expected -eq $actual) { "Checksum OK" } else { "Checksum MISMATCH" }
+```
+
 ## Security Handling
 
 - Redaction is required before final export artifacts.
+- If redaction errors occur, export artifacts are blocked (fail-closed).
 - Share bundles only through approved organizational channels.
-- Retain bundles per policy and remove expired artifacts.
-- Verify integrity using checksum (and signature when enabled).
-- Use `-RetentionDays` (default `7`) and `-RetentionCleanupOnly` for cleanup-only runs.
+- Use retention policy controls (`-RetentionDays`, `-RetentionCleanupOnly`).
 - Optional controls:
   - `-EnableBundleEncryption -BundlePassword <SecureString>` for encrypted output.
   - `-EnableSignature -SigningCertThumbprint <thumbprint>` for detached signature output.
+
+## Local Development and Tests
+
+Run tests locally:
+
+```powershell
+# from repo root
+.\tests\pester\Invoke-Pester.ps1
+```
+
+Run lint locally:
+
+```powershell
+Invoke-ScriptAnalyzer -Path .\collect-endpoint-evidence.ps1, .\src, .\tests\pester -Recurse
+```
 
 ## Troubleshooting
 
 - Confirm PowerShell execution policy allows script execution.
 - Run with `-DryRun` first to validate invocation.
-- Review output and logs in `out/`.
+- Review generated paths printed at the end of each run.
+- For signature mode, verify the certificate exists in `CurrentUser\\My` or `LocalMachine\\My`.

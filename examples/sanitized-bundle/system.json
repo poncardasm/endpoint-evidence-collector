@@ -1,0 +1,15 @@
+{
+  "collector": "system",
+  "status": "Success",
+  "critical": true,
+  "requires_elevation": false,
+  "message": "Collector executed. Items captured: 1",
+  "duration_ms": 120,
+  "data": {
+    "CollectedAtUtc": "2026-02-18T16:00:00.1000000Z",
+    "ComputerName": "WORKSTATION-001",
+    "OsCaption": "Windows 10 Enterprise",
+    "OsVersion": "10.0.19045",
+    "SerialNumber": "[REDACTED_USER]"
+  }
+}

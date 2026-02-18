@@ -1,0 +1,4 @@
+# Verify bundle checksum (PowerShell)
+$expected = (Get-Content .\bundle.sha256).Split('  ')[0]
+$actual = (Get-FileHash -Algorithm SHA256 .\WORKSTATION-001-20260218T160000Z-INC-10492.zip).Hash.ToLower()
+if ($expected -eq $actual) { 'Checksum OK' } else { 'Checksum MISMATCH' }

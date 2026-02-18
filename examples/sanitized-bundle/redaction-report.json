@@ -1,0 +1,11 @@
+{
+  "run_id": "11111111-2222-3333-4444-555555555555",
+  "redaction_level": "strict",
+  "redaction_error_count": 0,
+  "categories": {
+    "usernames": 2,
+    "tokens": 1,
+    "emails": 4,
+    "ip_addresses": 6
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "collector": "network",
+  "status": "Success",
+  "critical": true,
+  "requires_elevation": false,
+  "message": "Collector executed. Items captured: 6",
+  "duration_ms": 240,
+  "data": {
+    "Reachability": [
+      { "Target": "[REDACTED_IPV4]", "Reachable": true },
+      { "Target": "microsoft.com", "Reachable": true }
+    ]
+  }
+}
