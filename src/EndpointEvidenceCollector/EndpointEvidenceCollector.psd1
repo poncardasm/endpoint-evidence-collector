@@ -7,7 +7,13 @@
     Copyright = '(c) Arkibo. All rights reserved.'
     Description = 'Core module for endpoint-evidence-collector orchestration and helpers.'
     PowerShellVersion = '5.1'
-    FunctionsToExport = @()
+    FunctionsToExport = @(
+        'Get-EecCollectorCatalog',
+        'Resolve-EecCollectorPlan',
+        'Test-EecOutputPath',
+        'New-EecRunMetadata',
+        'Invoke-EecCollectionRun'
+    )
     CmdletsToExport = @()
     VariablesToExport = @()
     AliasesToExport = @()

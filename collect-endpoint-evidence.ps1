@@ -21,6 +21,11 @@ param(
 
     [Parameter(Mandatory = $false)]
     [switch]$DryRun
+,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateRange(1, 10)]
+    [int]$CriticalFailureThreshold = 1
 )
 
 Set-StrictMode -Version Latest
@@ -32,14 +37,47 @@ if (Test-Path $modulePath) {
     Import-Module $modulePath -Force -ErrorAction Stop
 }
 
-Write-Host "endpoint-evidence-collector bootstrap"
-Write-Host "CaseId: $CaseId | TicketId: $TicketId | Redaction: $RedactionLevel"
-Write-Host "OutputDir: $OutputDir"
-
-if ($DryRun) {
-    Write-Host "Dry run enabled. No evidence will be collected."
-    exit 0
+if (-not (Get-Command -Name Get-EecCollectorCatalog -ErrorAction SilentlyContinue)) {
+    throw "Module import failed. Required commands are unavailable."
 }
 
-Write-Host "Collector implementation pending (see TASKS.md Sections 2+)."
-exit 0
+try {
+    $catalog = Get-EecCollectorCatalog
+    $plan = Resolve-EecCollectorPlan -Catalog $catalog -Include $Include -Exclude $Exclude
+    $resolvedOutputDir = Test-EecOutputPath -Path $OutputDir -CreateIfMissing:(-not $DryRun)
+    $runMetadata = New-EecRunMetadata -CaseId $CaseId -TicketId $TicketId -RedactionLevel $RedactionLevel
+
+    Write-Host "endpoint-evidence-collector"
+    Write-Host "RunId: $($runMetadata.RunId)"
+    Write-Host "Started (UTC): $($runMetadata.StartedAtUtc)"
+    Write-Host "CaseId: $CaseId | TicketId: $TicketId | Redaction: $RedactionLevel"
+    Write-Host "OutputDir: $resolvedOutputDir"
+
+    if ($DryRun) {
+        Write-Host "Dry run enabled. Planned collectors:"
+        foreach ($collector in $plan) {
+            $elevation = if ($collector.RequiresElevation) { "requires-elevation" } else { "standard" }
+            Write-Host ("- {0} ({1})" -f $collector.Name, $elevation)
+        }
+    }
+
+    $runResult = Invoke-EecCollectionRun `
+        -CollectorPlan $plan `
+        -RunMetadata $runMetadata `
+        -OutputDir $resolvedOutputDir `
+        -CriticalFailureThreshold $CriticalFailureThreshold `
+        -DryRun:$DryRun
+
+    Write-Host ("Completed in {0} ms | Collectors: {1} | Failures: {2} | Critical failures: {3}" -f `
+            $runResult.TotalDurationMs, $runResult.TotalCollectors, $runResult.FailureCount, $runResult.CriticalFailureCount)
+
+    if ($runResult.ExitCode -ne 0) {
+        Write-Warning ("Run completed with exit code {0}." -f $runResult.ExitCode)
+    }
+
+    exit $runResult.ExitCode
+}
+catch {
+    Write-Error $_.Exception.Message
+    exit 99
+}
