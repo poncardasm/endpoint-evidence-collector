@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+# Block pushes that include docs/ changes.
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  if git diff-tree --no-commit-id --name-only -r $range | grep -q '^docs/'; then
+    echo 'ERROR: Push contains docs/ changes. docs/ is local-only.' >&2
+    exit 1
+  fi
+done
+
+if command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/hooks/pre-push.ps1
+elif command -v powershell >/dev/null 2>&1; then
+  powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/hooks/pre-push.ps1
+else
+  echo 'ERROR: PowerShell not found (pwsh/powershell). Cannot run pre-push checks.' >&2
+  exit 1
+fi

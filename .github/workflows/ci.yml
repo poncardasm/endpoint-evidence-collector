@@ -28,7 +28,12 @@ jobs:
         shell: pwsh
         run: |
           $targets = @("collect-endpoint-evidence.ps1", "src", "tests/pester")
-          $results = Invoke-ScriptAnalyzer -Path $targets -Recurse -Severity Error,Warning
+          $results = @()
+          foreach ($target in $targets) {
+            if (Test-Path -LiteralPath $target) {
+              $results += @(Invoke-ScriptAnalyzer -Path $target -Recurse -Severity Error,Warning)
+            }
+          }
           if ($results) {
             $results | Format-Table -AutoSize | Out-String | Write-Host
             throw "PSScriptAnalyzer reported issues."

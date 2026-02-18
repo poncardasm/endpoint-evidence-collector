@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+
+# Block docs/ commits (local-only policy).
+if git diff --cached --name-only | grep -q '^docs/'; then
+  echo 'ERROR: docs/ is local-only and must not be committed.' >&2
+  echo 'Run: git restore --staged docs/<file>' >&2
+  exit 1
+fi
+
+if command -v pwsh >/dev/null 2>&1; then
+  pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/hooks/pre-commit.ps1
+elif command -v powershell >/dev/null 2>&1; then
+  powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/hooks/pre-commit.ps1
+else
+  echo 'ERROR: PowerShell not found (pwsh/powershell). Cannot run pre-commit checks.' >&2
+  exit 1
+fi

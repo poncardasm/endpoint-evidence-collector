@@ -1,4 +1,4 @@
-# endpoint-evidence-collector
+# Endpoint Evidence Collector
 
 Windows-first endpoint diagnostics collector for service desk escalation workflows.
 
