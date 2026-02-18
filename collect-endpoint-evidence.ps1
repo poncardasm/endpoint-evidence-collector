@@ -28,7 +28,22 @@ param(
 
     [Parameter(Mandatory = $false)]
     [ValidateRange(1, 10)]
-    [int]$CriticalFailureThreshold = 1
+    [int]$CriticalFailureThreshold = 1,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableSignature,
+
+    [Parameter(Mandatory = $false)]
+    [string]$SigningCertThumbprint,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableBundleEncryption,
+
+    [Parameter(Mandatory = $false)]
+    [Security.SecureString]$BundlePassword,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$KeepPlainBundle
 )
 
 Set-StrictMode -Version Latest
@@ -47,14 +62,19 @@ if (-not (Get-Command -Name Get-EecCollectorCatalog -ErrorAction SilentlyContinu
 try {
     $catalog = Get-EecCollectorCatalog
     $plan = Resolve-EecCollectorPlan -Catalog $catalog -Include $Include -Exclude $Exclude
-    $resolvedOutputDir = Test-EecOutputPath -Path $OutputDir -CreateIfMissing:(-not $DryRun)
+    $resolvedBaseOutputDir = Test-EecOutputPath -Path $OutputDir -CreateIfMissing:(-not $DryRun)
     $runMetadata = New-EecRunMetadata -CaseId $CaseId -TicketId $TicketId -RedactionLevel $RedactionLevel
+    $runOutputDir = $resolvedBaseOutputDir
+
+    if (-not $DryRun) {
+        $runOutputDir = New-EecRunOutputDirectory -BaseOutputDir $resolvedBaseOutputDir -RunMetadata $runMetadata
+    }
 
     Write-Host "endpoint-evidence-collector"
     Write-Host "RunId: $($runMetadata.RunId)"
     Write-Host "Started (UTC): $($runMetadata.StartedAtUtc)"
     Write-Host "CaseId: $CaseId | TicketId: $TicketId | Redaction: $RedactionLevel"
-    Write-Host "OutputDir: $resolvedOutputDir"
+    Write-Host "OutputDir: $runOutputDir"
     Write-Host "EventLogLookbackHours: $EventLogLookbackHours"
 
     if ($DryRun) {
@@ -68,13 +88,28 @@ try {
     $runResult = Invoke-EecCollectionRun `
         -CollectorPlan $plan `
         -RunMetadata $runMetadata `
-        -OutputDir $resolvedOutputDir `
+        -OutputDir $runOutputDir `
         -CriticalFailureThreshold $CriticalFailureThreshold `
         -EventLogLookbackHours $EventLogLookbackHours `
+        -EnableSignature:$EnableSignature `
+        -SigningCertThumbprint $SigningCertThumbprint `
+        -EnableBundleEncryption:$EnableBundleEncryption `
+        -BundlePassword $BundlePassword `
+        -KeepPlainBundle:$KeepPlainBundle `
         -DryRun:$DryRun
 
     Write-Host ("Completed in {0} ms | Collectors: {1} | Failures: {2} | Critical failures: {3}" -f `
             $runResult.TotalDurationMs, $runResult.TotalCollectors, $runResult.FailureCount, $runResult.CriticalFailureCount)
+
+    if (-not $DryRun -and $runResult.ArtifactPaths) {
+        Write-Host "Summary: $($runResult.ArtifactPaths.SummaryPath)"
+        Write-Host "Manifest: $($runResult.ArtifactPaths.ManifestPath)"
+        Write-Host "Bundle: $($runResult.ArtifactPaths.BundlePath)"
+        Write-Host "Checksum: $($runResult.ArtifactPaths.ChecksumPath)"
+        if ($runResult.ArtifactPaths.SignaturePath) {
+            Write-Host "Signature: $($runResult.ArtifactPaths.SignaturePath)"
+        }
+    }
 
     if ($runResult.ExitCode -ne 0) {
         Write-Warning ("Run completed with exit code {0}." -f $runResult.ExitCode)
