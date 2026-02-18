@@ -20,8 +20,11 @@ param(
     [string[]]$Exclude,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DryRun
-,
+    [switch]$DryRun,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateRange(1, 168)]
+    [int]$EventLogLookbackHours = 24,
 
     [Parameter(Mandatory = $false)]
     [ValidateRange(1, 10)]
@@ -52,6 +55,7 @@ try {
     Write-Host "Started (UTC): $($runMetadata.StartedAtUtc)"
     Write-Host "CaseId: $CaseId | TicketId: $TicketId | Redaction: $RedactionLevel"
     Write-Host "OutputDir: $resolvedOutputDir"
+    Write-Host "EventLogLookbackHours: $EventLogLookbackHours"
 
     if ($DryRun) {
         Write-Host "Dry run enabled. Planned collectors:"
@@ -66,6 +70,7 @@ try {
         -RunMetadata $runMetadata `
         -OutputDir $resolvedOutputDir `
         -CriticalFailureThreshold $CriticalFailureThreshold `
+        -EventLogLookbackHours $EventLogLookbackHours `
         -DryRun:$DryRun
 
     Write-Host ("Completed in {0} ms | Collectors: {1} | Failures: {2} | Critical failures: {3}" -f `
