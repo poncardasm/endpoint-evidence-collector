@@ -1,0 +1,29 @@
+# Build/output artifacts
+out/
+*.zip
+*.sha256
+*.sig
+
+# Temp/runtime artifacts
+*.tmp
+*.temp
+*.log
+*.cache
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test artifacts
+test-results/
+coverage/
+
+# Env and local overrides
+.env
+.env.local
+
+# Misc
+plan/
+docs/
