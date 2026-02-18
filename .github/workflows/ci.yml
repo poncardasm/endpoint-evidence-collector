@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gate:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PowerShell modules
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -SkipPublisherCheck
+
+      - name: Lint PowerShell scripts (PSScriptAnalyzer)
+        shell: pwsh
+        run: |
+          $targets = @("collect-endpoint-evidence.ps1", "src", "tests/pester")
+          $results = Invoke-ScriptAnalyzer -Path $targets -Recurse -Severity Error,Warning
+          if ($results) {
+            $results | Format-Table -AutoSize | Out-String | Write-Host
+            throw "PSScriptAnalyzer reported issues."
+          }
+
+      - name: Run Pester tests
+        shell: pwsh
+        run: |
+          ./tests/pester/Invoke-Pester.ps1 -CI
+
+      - name: Upload Pester results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pester-results
+          path: tests/pester/results/pester-results.xml
+          if-no-files-found: warn
+
+      - name: Secret scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dependency vulnerability review
+        if: ${{ github.event_name == 'pull_request' && hashFiles('**/package-lock.json', '**/yarn.lock', '**/pnpm-lock.yaml', '**/requirements.txt', '**/poetry.lock', '**/Pipfile.lock', '**/go.sum', '**/Cargo.lock') != '' }}
+        uses: actions/dependency-review-action@v4
+
+      - name: Quality gate passed
+        if: success()
+        shell: pwsh
+        run: |
+          Write-Host "All quality gates passed."
