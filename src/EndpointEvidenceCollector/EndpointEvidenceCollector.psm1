@@ -176,6 +176,74 @@ function New-EecRunOutputDirectory {
     $runDir
 }
 
+function Test-EecSafeIdentifier {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+        [string]$Value
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return
+    }
+
+    $trimmed = $Value.Trim()
+    if ($trimmed.Length -gt 128) {
+        throw "$Name is too long. Maximum length is 128 characters."
+    }
+
+    if ($trimmed -match "[`n`r;&|]" -or $trimmed -match "\.\." -or $trimmed -match "[\\/]" -or $trimmed -match "^\s*[-]") {
+        throw "$Name contains unsafe characters."
+    }
+}
+
+function Invoke-EecRetentionCleanup {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$BaseOutputDir,
+        [ValidateRange(1, 365)]
+        [int]$RetentionDays = 7
+    )
+
+    if (-not (Test-Path -LiteralPath $BaseOutputDir)) {
+        return [pscustomobject]@{
+            base_output_dir = $BaseOutputDir
+            retention_days = $RetentionDays
+            cutoff_utc = [DateTime]::UtcNow.AddDays(-1 * $RetentionDays).ToString("o")
+            removed_count = 0
+            removed_directories = @()
+            skipped_reason = "base output directory does not exist"
+        }
+    }
+
+    $cutoff = [DateTime]::UtcNow.AddDays(-1 * $RetentionDays)
+    $removed = @()
+
+    $candidateDirs = Get-ChildItem -LiteralPath $BaseOutputDir -Directory -ErrorAction SilentlyContinue
+    foreach ($dir in $candidateDirs) {
+        try {
+            if ($dir.LastWriteTimeUtc -lt $cutoff) {
+                Remove-Item -LiteralPath $dir.FullName -Recurse -Force -ErrorAction Stop
+                $removed += $dir.FullName
+            }
+        }
+        catch {
+            Write-Warning "Retention cleanup failed for '$($dir.FullName)': $($_.Exception.Message)"
+        }
+    }
+
+    [pscustomobject]@{
+        base_output_dir = $BaseOutputDir
+        retention_days = $RetentionDays
+        cutoff_utc = $cutoff.ToString("o")
+        removed_count = $removed.Count
+        removed_directories = $removed
+        skipped_reason = $null
+    }
+}
+
 function Get-EecSystemEvidence {
     [CmdletBinding()]
     param()
@@ -1089,5 +1157,7 @@ Export-ModuleMember -Function @(
     "Test-EecOutputPath",
     "New-EecRunMetadata",
     "New-EecRunOutputDirectory",
+    "Test-EecSafeIdentifier",
+    "Invoke-EecRetentionCleanup",
     "Invoke-EecCollectionRun"
 )

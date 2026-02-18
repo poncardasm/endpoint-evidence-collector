@@ -43,7 +43,14 @@ param(
     [Security.SecureString]$BundlePassword,
 
     [Parameter(Mandatory = $false)]
-    [switch]$KeepPlainBundle
+    [switch]$KeepPlainBundle,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateRange(1, 365)]
+    [int]$RetentionDays = 7,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$RetentionCleanupOnly
 )
 
 Set-StrictMode -Version Latest
@@ -60,11 +67,33 @@ if (-not (Get-Command -Name Get-EecCollectorCatalog -ErrorAction SilentlyContinu
 }
 
 try {
+    Test-EecSafeIdentifier -Name "CaseId" -Value $CaseId
+    Test-EecSafeIdentifier -Name "TicketId" -Value $TicketId
+
+    if ($EnableSignature) {
+        if ([string]::IsNullOrWhiteSpace($SigningCertThumbprint)) {
+            throw "SigningCertThumbprint is required when -EnableSignature is used."
+        }
+        if (($SigningCertThumbprint -replace "\s", "") -notmatch "^[A-Fa-f0-9]{40}$") {
+            throw "SigningCertThumbprint must be a valid SHA-1 certificate thumbprint (40 hex characters)."
+        }
+    }
+
+    if ($EnableBundleEncryption -and $null -eq $BundlePassword) {
+        throw "BundlePassword is required when -EnableBundleEncryption is used."
+    }
+
     $catalog = Get-EecCollectorCatalog
     $plan = Resolve-EecCollectorPlan -Catalog $catalog -Include $Include -Exclude $Exclude
     $resolvedBaseOutputDir = Test-EecOutputPath -Path $OutputDir -CreateIfMissing:(-not $DryRun)
     $runMetadata = New-EecRunMetadata -CaseId $CaseId -TicketId $TicketId -RedactionLevel $RedactionLevel
     $runOutputDir = $resolvedBaseOutputDir
+
+    if ($RetentionCleanupOnly) {
+        $cleanupOnly = Invoke-EecRetentionCleanup -BaseOutputDir $resolvedBaseOutputDir -RetentionDays $RetentionDays
+        Write-Host ("Retention cleanup completed. Removed directories: {0}" -f $cleanupOnly.removed_count)
+        exit 0
+    }
 
     if (-not $DryRun) {
         $runOutputDir = New-EecRunOutputDirectory -BaseOutputDir $resolvedBaseOutputDir -RunMetadata $runMetadata
@@ -113,6 +142,12 @@ try {
 
     if ($runResult.ExitCode -ne 0) {
         Write-Warning ("Run completed with exit code {0}." -f $runResult.ExitCode)
+    }
+
+    if (-not $DryRun) {
+        $cleanupResult = Invoke-EecRetentionCleanup -BaseOutputDir $resolvedBaseOutputDir -RetentionDays $RetentionDays
+        Write-Host ("Retention cleanup removed {0} old output director{1} (>{2} days)." -f `
+                $cleanupResult.removed_count, $(if ($cleanupResult.removed_count -eq 1) { "y" } else { "ies" }), $RetentionDays)
     }
 
     exit $runResult.ExitCode

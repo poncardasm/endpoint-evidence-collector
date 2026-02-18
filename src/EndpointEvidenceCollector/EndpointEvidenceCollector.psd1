@@ -12,6 +12,9 @@
         'Resolve-EecCollectorPlan',
         'Test-EecOutputPath',
         'New-EecRunMetadata',
+        'New-EecRunOutputDirectory',
+        'Test-EecSafeIdentifier',
+        'Invoke-EecRetentionCleanup',
         'Invoke-EecCollectionRun'
     )
     CmdletsToExport = @()

@@ -56,6 +56,10 @@ Example:
 - Share bundles only through approved organizational channels.
 - Retain bundles per policy and remove expired artifacts.
 - Verify integrity using checksum (and signature when enabled).
+- Use `-RetentionDays` (default `7`) and `-RetentionCleanupOnly` for cleanup-only runs.
+- Optional controls:
+  - `-EnableBundleEncryption -BundlePassword <SecureString>` for encrypted output.
+  - `-EnableSignature -SigningCertThumbprint <thumbprint>` for detached signature output.
 
 ## Troubleshooting
 
