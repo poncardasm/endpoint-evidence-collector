@@ -148,6 +148,26 @@ Run lint locally:
 Invoke-ScriptAnalyzer -Path .\collect-endpoint-evidence.ps1, .\src, .\tests\pester -Recurse
 ```
 
+## Pilot and Release Readiness
+
+Pilot execution assets:
+
+- `pilot/PILOT_EXECUTION.md`
+- `pilot/PILOT_RESULTS.md`
+- `scripts/Measure-PilotResults.ps1`
+
+Generate pilot metrics from run outputs:
+
+```powershell
+.\scripts\Measure-PilotResults.ps1 -OutputRoot .\out -ReportPath .\pilot\pilot-metrics-report.json
+```
+
+Release assets:
+
+- `RELEASE_READINESS.md`
+- `CHANGELOG.md`
+- `RELEASE_NOTES_TEMPLATE.md`
+
 ## Troubleshooting
 
 - Confirm PowerShell execution policy allows script execution.
