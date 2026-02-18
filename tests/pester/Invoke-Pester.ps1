@@ -16,14 +16,19 @@ if ($CI) {
         New-Item -ItemType Directory -Path $resultsDir -Force | Out-Null
     }
 
-    Invoke-Pester -Path $Path -Output Detailed -CI -PassThru `
-        -Configuration @{
-            TestResult = @{
-                Enabled = $true
-                OutputPath = $ResultsPath
-                OutputFormat = "NUnitXml"
-            }
-        }
+    if (-not (Get-Command New-PesterConfiguration -ErrorAction SilentlyContinue)) {
+        throw "Installed Pester version does not support New-PesterConfiguration."
+    }
+
+    $config = New-PesterConfiguration
+    $config.Run.Path = $Path
+    $config.Run.Exit = $true
+    $config.Output.Verbosity = "Detailed"
+    $config.TestResult.Enabled = $true
+    $config.TestResult.OutputPath = $ResultsPath
+    $config.TestResult.OutputFormat = "NUnitXml"
+
+    Invoke-Pester -Configuration $config
 }
 else {
     Invoke-Pester -Path $Path -Output Detailed
