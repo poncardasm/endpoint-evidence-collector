@@ -168,6 +168,15 @@ Release assets:
 - `CHANGELOG.md`
 - `RELEASE_NOTES_TEMPLATE.md`
 
+## Post-v1 Backlog
+
+Scaffolded backlog items are documented in `POST_V1_BACKLOG.md`:
+
+- Python Typer wrapper: `wrapper/python/eec_wrapper.py`
+- macOS collectors scaffold: `src/collectors/macos/Get-EecMacOSEvidence.ps1`
+- Ticketing adapter stubs: `src/integrations/ticketing/adapter.ps1`
+- Upload automation stub: `src/integrations/upload/Upload-EecBundle.ps1`
+
 ## Troubleshooting
 
 - Confirm PowerShell execution policy allows script execution.
